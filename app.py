@@ -1,55 +1,67 @@
 from flask import Flask, render_template, request, redirect
-import sqlite3
+import mysql.connector
+from datetime import datetime
+import os
 
 app = Flask(__name__)
 
-def get_messages():
-    conn = sqlite3.connect("data.db")
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS messages (
-            message_id INTEGER PRIMARY KEY,
-            channel_name TEXT,
-            send_date TEXT,
-            message TEXT,
-            translated TEXT,
-            tema TEXT,
-            yer1 TEXT,
-            yer2 TEXT,
-            yer3 TEXT,
-            notlar TEXT
-        )
+# MariaDB bağlantı ayarları
+db_config = {
+    "host": "localhost",
+    "user": "root",
+    "password": "1959",
+    "database": "rus",
+    "charset": "utf8mb4"
+}
+
+# Çevrilmiş mesajları getir
+def get_translated_messages():
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT message_id, channel_name, send_date, translated_message,
+               tema1, tema2, yer1, yer2, yer3, extra, notlar
+        FROM telegram_messages
+        WHERE translated_message IS NOT NULL
+        ORDER BY send_date DESC
+        LIMIT 500
     """)
-    c.execute("SELECT COUNT(*) FROM messages")
-    if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO messages (message_id, channel_name, send_date, message, translated) VALUES (?, ?, ?, ?, ?)",
-                  (101, 'Мерсин 🍋', '2025-03-28', 'Orijinal mesaj örneği', 'Çevrilmiş mesaj örneği'))
-    conn.commit()
-    c.execute("SELECT * FROM messages ORDER BY send_date DESC")
-    rows = c.fetchall()
+    rows = cursor.fetchall()
+    cursor.close()
     conn.close()
     return rows
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        conn = sqlite3.connect("data.db")
-        c = conn.cursor()
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         for key in request.form:
-            if key.startswith("tema_"):
+            if key.startswith("tema1_"):
                 msg_id = key.split("_")[1]
-                tema = request.form.get(f"tema_{msg_id}")
+                tema1 = request.form.get(f"tema1_{msg_id}")
+                tema2 = request.form.get(f"tema2_{msg_id}")
                 yer1 = request.form.get(f"yer1_{msg_id}")
                 yer2 = request.form.get(f"yer2_{msg_id}")
                 yer3 = request.form.get(f"yer3_{msg_id}")
-                notlar = request.form.get(f"not_{msg_id}")
-                c.execute("UPDATE messages SET tema=?, yer1=?, yer2=?, yer3=?, notlar=? WHERE message_id=?", 
-                          (tema, yer1, yer2, yer3, notlar, msg_id))
+                extra = request.form.get(f"extra_{msg_id}")
+                notlar = request.form.get(f"notlar_{msg_id}")
+                cursor.execute("""
+                    UPDATE telegram_messages
+                    SET tema1=%s, tema2=%s, yer1=%s, yer2=%s, yer3=%s,
+                        extra=%s, notlar=%s, tagged_at=%s
+                    WHERE message_id=%s
+                """, (tema1, tema2, yer1, yer2, yer3, extra, notlar, now, msg_id))
         conn.commit()
+        cursor.close()
         conn.close()
         return redirect("/")
-    messages = get_messages()
+
+    messages = get_translated_messages()
     return render_template("index.html", messages=messages)
 
+# Render için uygun Flask başlatma komutu
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
