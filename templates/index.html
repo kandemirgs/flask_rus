@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Flask Telegram Etiketleme</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+        input[type="text"], textarea { width: 100%; }
+    </style>
+</head>
+<body>
+    <h2>Telegram Mesaj Etiketleme (Flask)</h2>
+    <form method="POST">
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Kanal</th>
+                <th>Tarih</th>
+                <th>Mesaj</th>
+                <th>Çeviri</th>
+                <th>Tema</th>
+                <th>Yer1</th>
+                <th>Yer2</th>
+                <th>Yer3</th>
+                <th>Not</th>
+            </tr>
+            {% for row in messages %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+                <td>{{ row[4] }}</td>
+                <td><input type="text" name="tema_{{ row[0] }}" value="{{ row[5] or '' }}"></td>
+                <td><input type="text" name="yer1_{{ row[0] }}" value="{{ row[6] or '' }}"></td>
+                <td><input type="text" name="yer2_{{ row[0] }}" value="{{ row[7] or '' }}"></td>
+                <td><input type="text" name="yer3_{{ row[0] }}" value="{{ row[8] or '' }}"></td>
+                <td><textarea name="not_{{ row[0] }}">{{ row[9] or '' }}</textarea></td>
+            </tr>
+            {% endfor %}
+        </table>
+        <button type="submit">Kaydet</button>
+    </form>
+</body>
+</html>
