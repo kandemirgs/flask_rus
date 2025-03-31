@@ -5,16 +5,16 @@ import os
 
 app = Flask(__name__)
 
-# MariaDB bağlantı ayarları
+# Railway'den alacağın MariaDB bağlantı bilgileri:
 db_config = {
-    "host": "localhost",
-    "user": "root",
-    "password": "1959",
-    "database": "rus",
-    "charset": "utf8mb4"
+    "host": "your-db-host.railway.app",
+    "user": "your-db-user",
+    "password": "your-db-password",
+    "database": "your-db-name",
+    "port": 3306
 }
 
-# Çevrilmiş mesajları getir
+# Veritabanından çevrilmiş mesajları getir
 def get_translated_messages():
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor(dictionary=True)
@@ -31,6 +31,7 @@ def get_translated_messages():
     conn.close()
     return rows
 
+# Ana sayfa ve form işlemi
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -61,10 +62,8 @@ def index():
     messages = get_translated_messages()
     return render_template("index.html", messages=messages)
 
-# Render için uygun Flask başlatma komutu
+# Uygulama dış IP'den çalışsın (Railway/Render için)
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-# trigger rebuild
-# force rebuild
-# force deploy
+# force deploy trigger
